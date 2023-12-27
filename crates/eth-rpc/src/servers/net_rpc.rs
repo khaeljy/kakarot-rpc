@@ -1,5 +1,4 @@
 use jsonrpsee::core::{async_trait, RpcResult as Result};
-use kakarot_rpc_core::client::constants::CHAIN_ID;
 use kakarot_rpc_core::client::errors::EthApiError;
 use kakarot_rpc_core::client::KakarotClient;
 use reth_primitives::U64;
@@ -23,8 +22,8 @@ impl<P: Provider + Send + Sync> NetRpc<P> {
 
 #[async_trait]
 impl<P: Provider + Send + Sync + 'static> NetApiServer for NetRpc<P> {
-    fn version(&self) -> Result<U64> {
-        Ok(CHAIN_ID.into())
+    async fn version(&self) -> Result<U64> {
+        Ok(self.kakarot_client.get_chain_id().await.map_err(EthApiError::from)?)
     }
 
     fn peer_count(&self) -> Result<PeerCount> {

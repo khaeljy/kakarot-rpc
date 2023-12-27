@@ -5,7 +5,7 @@ use starknet::core::types::{
 };
 use starknet::providers::{MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage};
 
-use crate::client::constants::{self, CHAIN_ID};
+use crate::client::constants::{self};
 use crate::client::errors::EthApiError;
 use crate::client::KakarotClient;
 use crate::models::call::Calls;
@@ -104,6 +104,8 @@ impl StarknetTransaction {
         };
         let nonce: U64 = u64::try_from(nonce)?.into();
 
+        let chain_id = client.get_chain_id().await?;
+
         let from = client.get_evm_address(&sender_address).await?;
 
         let max_priority_fee_per_gas = Some(client.max_priority_fee_per_gas());
@@ -117,7 +119,7 @@ impl StarknetTransaction {
         let max_fee_per_gas = Some(U128::from(tx.max_fee_per_gas()));
         let transaction_type = Some(U64::from(Into::<u8>::into(tx.tx_type())));
 
-        let v = if signature.odd_y_parity { 1 } else { 0 } + 35 + 2 * CHAIN_ID;
+        let v = if signature.odd_y_parity { 1 } else { 0 } + 35 + 2 * chain_id.low_u64();
         let signature =
             Some(Signature { r: signature.r, s: signature.s, v: U256::from_limbs_slice(&[v]), y_parity: None });
 
@@ -136,7 +138,7 @@ impl StarknetTransaction {
             max_priority_fee_per_gas,
             input,
             signature,
-            chain_id: Some(CHAIN_ID.into()),
+            chain_id: Some(chain_id),
             access_list: None, // TODO fetch the access list
             transaction_type,
             max_fee_per_blob_gas: None,

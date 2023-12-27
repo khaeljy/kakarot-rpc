@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use jsonrpsee::core::{async_trait, RpcResult as Result};
-use kakarot_rpc_core::client::constants::{CHAIN_ID, CHUNK_SIZE_LIMIT};
+use kakarot_rpc_core::client::constants::CHUNK_SIZE_LIMIT;
 use kakarot_rpc_core::client::errors::EthApiError;
 use kakarot_rpc_core::client::{ContractAccountReader, KakarotClient};
 use kakarot_rpc_core::models::block::EthBlockId;
@@ -77,7 +77,8 @@ impl<P: Provider + Send + Sync + 'static> EthApiServer for KakarotEthRpc<P> {
     }
 
     async fn chain_id(&self) -> Result<Option<U64>> {
-        Ok(Some(CHAIN_ID.into()))
+        let chain_id = self.kakarot_client.get_chain_id().await.map_err(EthApiError::from)?;
+        Ok(Some(chain_id))
     }
 
     async fn block_by_hash(&self, hash: H256, full: bool) -> Result<Option<RichBlock>> {

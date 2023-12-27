@@ -2,12 +2,12 @@ use async_trait::async_trait;
 use bytes::BytesMut;
 use ethers::abi::Tokenize;
 use ethers::signers::{LocalWallet, Signer};
-use kakarot_rpc_core::client::constants::CHAIN_ID;
+use kakarot_rpc_core::client::errors::EthApiError;
 use kakarot_rpc_core::client::KakarotClient;
 use kakarot_rpc_core::models::felt::Felt252Wrapper;
 use reth_primitives::{
     sign_message, Address, BlockId, BlockNumberOrTag, Bytes, Transaction, TransactionKind, TransactionSigned,
-    TxEip1559, H256, U256,
+    TxEip1559, H256, U256, U64,
 };
 use starknet::core::types::{BlockId as StarknetBlockId, BlockTag, MaybePendingTransactionReceipt, TransactionReceipt};
 use starknet::core::utils::get_selector_from_name;
@@ -38,6 +38,12 @@ pub trait EOA<P: Provider + Send + Sync> {
         let evm_address = self.evm_address()?;
 
         Ok(client.nonce(evm_address, BlockId::Number(BlockNumberOrTag::Latest)).await?)
+    }
+
+    async fn chain_id(&self) -> Result<U64, EthApiError> {
+        let client = self.client();
+
+        Ok(client.get_chain_id().await?)
     }
 
     fn sign_transaction(&self, tx: Transaction) -> Result<TransactionSigned, eyre::Error> {
@@ -147,7 +153,7 @@ impl<P: Provider + Send + Sync> KakarotEOA<P> {
         let nonce: u64 = nonce.try_into()?;
 
         let tx = Transaction::Eip1559(TxEip1559 {
-            chain_id: CHAIN_ID,
+            chain_id: self.chain_id().await?.low_u64(),
             nonce,
             max_priority_fee_per_gas: Default::default(),
             max_fee_per_gas: Default::default(),

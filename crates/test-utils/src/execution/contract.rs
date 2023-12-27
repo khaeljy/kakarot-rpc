@@ -4,12 +4,13 @@ use std::path::Path;
 use ethers::abi::Tokenize;
 use ethers_solc::artifacts::CompactContractBytecode;
 use foundry_config::{find_project_root_path, load_config};
-use kakarot_rpc_core::client::constants::CHAIN_ID;
 use kakarot_rpc_core::models::felt::Felt252Wrapper;
 use reth_primitives::{Transaction, TransactionKind, TxEip1559};
 use starknet_crypto::FieldElement;
 
 use crate::root_project_path;
+
+const CHAIN_ID: u64 = 1_263_227_476; // TODO: Fetch chain_id
 
 pub trait EvmContract {
     fn load_contract_bytecode(contract_name: &str) -> Result<CompactContractBytecode, eyre::Error> {

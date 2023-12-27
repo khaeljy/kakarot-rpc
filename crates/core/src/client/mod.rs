@@ -28,8 +28,8 @@ use std::sync::Arc;
 use self::config::{KakarotRpcConfig, Network};
 use self::constants::gas::{BASE_FEE_PER_GAS, MAX_PRIORITY_FEE_PER_GAS, MINIMUM_GAS_FEE};
 use self::constants::{
-    CHAIN_ID, COUNTER_CALL_MAINNET, COUNTER_CALL_TESTNET1, COUNTER_CALL_TESTNET2,
-    DUMMY_ARGENT_GAS_PRICE_ACCOUNT_ADDRESS, ESTIMATE_GAS, MAX_FEE, STARKNET_NATIVE_TOKEN,
+    COUNTER_CALL_MAINNET, COUNTER_CALL_TESTNET1, COUNTER_CALL_TESTNET2, DUMMY_ARGENT_GAS_PRICE_ACCOUNT_ADDRESS,
+    ESTIMATE_GAS, MAX_FEE, STARKNET_NATIVE_TOKEN,
 };
 use self::errors::EthApiError;
 use self::helpers::prepare_kakarot_eth_send_transaction;
@@ -183,6 +183,12 @@ impl<P: Provider + Send + Sync> KakarotClient<P> {
             .to_eth_transaction(self, block_hash, block_num, Some(U256::from(index)))
             .await?;
         Ok(eth_tx)
+    }
+
+    /// Returns the chain id.
+    pub async fn get_chain_id(&self) -> Result<U64, EthApiError> {
+        let chain_id: Felt252Wrapper = self.starknet_provider.chain_id().await?.into();
+        Ok(u64::try_from(chain_id)?.into())
     }
 
     /// Returns the nonce for a given ethereum address
@@ -348,7 +354,10 @@ impl<P: Provider + Send + Sync> KakarotClient<P> {
             }
         };
 
-        let chain_id = request.chain_id.unwrap_or_else(|| CHAIN_ID.into());
+        let chain_id = match request.chain_id {
+            None => self.get_chain_id().await?,
+            Some(res) => res,
+        };
 
         let from = request.from.ok_or_else(|| EthApiError::MissingParameterError("from for estimate_gas".into()))?;
         let nonce = self.nonce(from, block_id).await?.try_into().map_err(ConversionError::from)?;
